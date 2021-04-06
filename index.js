@@ -34,7 +34,7 @@ app.use(function (req, res, next) {
 
 
 /*list directory items*/
-app.get('/listFiles', (req, res) => {
+app.get('/list', (req, res) => {
   if(!req.query.path)
   res.status(400).send("Bad Request");
   const path = req.query.path
@@ -101,7 +101,7 @@ app.delete('/delete',(req, res) => {
 })
 
 /*create a directory in a certain path*/
-app.put('/makeDirectory', (req, res)=> {
+app.put('/makedir', (req, res)=> {
   const client = res.locals.client  
 
 
@@ -114,7 +114,7 @@ app.put('/makeDirectory', (req, res)=> {
 })
 
 /*get a text file*/
-app.get('/downloadFile', (req, res) => {
+app.get('/download', (req, res) => {
   if(!req.query.filepath)
     res.status(400).send("Bad Request");
   const fpath = req.query.filepath;
@@ -134,7 +134,7 @@ app.get('/downloadFile', (req, res) => {
 
 
 /*upload a file*/
-app.put('/uploadFile', (req, res) => {
+app.put('/upload', (req, res) => {
   const client = res.locals.client
   const form = new formidable.IncomingForm();
   form.parse(req, (error, fields, files) => {
