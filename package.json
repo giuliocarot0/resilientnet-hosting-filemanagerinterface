@@ -9,9 +9,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
+    "create-react-app": "^4.0.3",
     "express": "^4.17.1",
     "formidable": "^1.2.2",
+    "keycloak-backend": "^2.0.1",
     "path": "^0.12.7",
     "webdav": "^4.3.0"
   }

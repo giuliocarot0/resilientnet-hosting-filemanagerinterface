@@ -1,10 +1,18 @@
 
 const express = require('express')
 const fs = require("fs")
-var mime = require("mime")
+const mime = require("mime")
 const path = require('path');
-
+const keycloak = require('keycloak-backend')({
+  "realm": "resilientnetidp",
+  "auth-server-url": "https://idp.resilientnet.com/",
+  "ssl-required": "external",
+  "resource": "filemanager-backend",
+  "public-client": true,
+  "confidential-port": 0
+})
 const formidable = require('formidable')
+const cookies = require('cookie-parser')
 const bodyParser = require('body-parser')
 const { createClient, AuthType } = require("webdav");
 var cors = require('cors');
@@ -15,23 +23,48 @@ const port = 3000
 app.use(bodyParser.urlencoded({extended: true}))
 app.use(bodyParser.json())
 
-app.use(cors())
 
+app.use(cors())
+app.use(cookies())
 /*creating a middleware that creates a connection to the webdav instance*/
 app.use(function (req, res, next) {
-  /*The middleware should read the token and understand which is the target website plus the credentials*/
-  const user = "gcarota"
-  const pass = "bee"
-  const host = "http://dav.bee.resilientnet.com"
-  const client = createClient(host,{
-    //authType: AuthType.Digest,
-    username:user,
-    password:pass
-})
-  res.locals.client = client
-  next();
+  /*receive a token: if keycloak one validate and set a cookie with jwt for this session*/
+  console.log(req.cookies)
+  if(req.cookies && req.cookies.K_IDENTITY){
+
+        let k_payload = req.cookies.K_IDENTITY;
+        let k_token = keycloak.accessToken.info(k_payload)
+        k_token
+          .then((e) => {
+              /*The middleware should read the token and understand which is the target website plus the credentials*/
+              const user = "gcarota"
+              const pass = "bee"
+              const host = "http://dav.bee.resilientnet.com/"
+              const client = createClient(host,{
+                //authType: AuthType.Digest,
+                username:user,
+                password:pass
+              })
+              res.locals.client = client
+              res.locals.subject = e["preferred_username"]
+              return next();
+            })
+          .catch(() =>{
+              return next();
+            })
+        }
+  else
+   return res.redirect('https://idp.resilientnet.com/auth/realms/resilientnetidp/protocol/openid-connect/auth?client_id=filemanager-backend&response_mode=fragment&response_type=code&redirect_uri=http://localhost:3000/');
 })
 
+
+
+app.get('/', (req,res) => {
+  if(res.locals.client && res.locals.subject) 
+    res.send("Hello! "+res.locals.subject);
+  else
+    res.status(401).send({error: "Unauthorized"})
+})
 
 /*list directory items*/
 app.get('/list', (req, res) => {
@@ -120,7 +153,7 @@ app.get('/download', (req, res) => {
   const fpath = req.query.filepath;
   const client = res.locals.client  
 
-  const name = path.basename(fpath);
+  const name = client.id + "_" +path.basename(fpath);
   client.createReadStream(fpath).pipe(fs.createWriteStream("/tmp/" + name));
   const type = mime.lookup("/tmp/" + name)
   res.setHeader('Content-disposition', 'attachment; filename=' + name);
@@ -152,26 +185,12 @@ app.put('/upload', (req, res) => {
       console.log(element.name + " |" + element.path + " |" + element.size)
       fs.createReadStream(element.path).pipe(client.createWriteStream(path + "/"+element.name))
   }
-
-    
   })
-  /* const client = createClient("http://dav.bee.resilientnet.com/",{
-    //authType: AuthType.Digest,
-    username:"gcarota",
-    password:"bee"
-})
-
-  if(!req.body.path)
-    res.send("Bad Request").status(400);
-  const dirName = req.body.path;
-  console.log(dirName)
-  const link = client.getFileUploadLink(dirName) */
-
   return res.status(200).send("ok")
 })
 
 
-+
+
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 })

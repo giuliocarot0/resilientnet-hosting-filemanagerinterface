@@ -1,0 +1,8 @@
+{
+  "realm": "resilientnetidp",
+  "auth-server-url": "https://idp.resilientnet.com/auth",
+  "ssl-required": "external",
+  "resource": "filemanager-backend",
+  "public-client": true,
+  "confidential-port": 0
+}
